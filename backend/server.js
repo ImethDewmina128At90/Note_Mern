@@ -1,21 +1,47 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
-dotenv.config();
+import path from "path";
 
 import notesRoutes from "./src/routes/notesRoutes.js";
 import connectDB from "./src/config/db.js";
+import rateLimiter from "./src/middleware/rateLimiter.js";
+
+dotenv.config();
 
 const app = express();
-connectDB();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+const PORT = process.env.PORT || 5001;
+const __dirname = path.resolve();
+
+// middleware
+if (process.env.NODE_ENV !== "production") {
+    app.use(
+        cors({
+            origin: /^http:\/\/localhost:\d+$/,
+        })
+    );
+}
+app.use(express.json()); // this middleware will parse JSON bodies: req.body
+app.use(rateLimiter);
+
+// our simple custom middleware
+// app.use((req, res, next) => {
+//   console.log(`Req method is ${req.method} & Req URL is ${req.url}`);
+//   next();
+// });
+
 app.use("/api/notes", notesRoutes);
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000");
+if (process.env.NODE_ENV === "production") {
+    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+    app.get("*", (req, res) => {
+        res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+    });
+}
+
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log("Server started on PORT:", PORT);
+    });
 });
-
-
-
-
-//
