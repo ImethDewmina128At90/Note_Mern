@@ -7,6 +7,8 @@ import connectDB from "./src/config/db.js";
 
 const app = express();
 connectDB();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use("/api/notes", notesRoutes);
 
 app.listen(3000, () => {
